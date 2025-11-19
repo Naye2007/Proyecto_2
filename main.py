@@ -1,34 +1,28 @@
-import tkinter as tk
-from casilla import Casilla
-from terreno import Terreno
+from tkinter import *
+from mapa import Mapa
 
-TAM = 40  # tamaño de cada casilla
+# Importar clases de terrenos
+from camino import Camino
+from muro import Muro
+from tunel import Tunel
+from liana import Liana
 
-ventana = tk.Tk()
-canvas = tk.Canvas(ventana, width=400, height=400)
-canvas.pack()
+TAM = 30
 
-# Definir tipos de terreno una sola vez
+# Diccionario: nombre → clase, NO instancias
 TIPOS = {
-    "Muro": Terreno("Muro", "gray"),
-    "Camino": Terreno("Camino", "white"),
-    "Liana": Terreno("Liana", "green"),
-    "Tunel": Terreno("Tunel", "brown"),
+    "Camino": Camino,
+    "Muro": Muro,
+    "Tunel": Tunel,
+    "Liana": Liana
 }
 
-# Crear matriz 10x10
-matriz = []
+ventana = Tk()
+canvas = Canvas(ventana, width=900, height=900)
+canvas.pack()
 
-for i in range(10):
-    fila = []
-    for j in range(10):
-        # elegir terreno según patrón o aleatorio
-        terreno = TIPOS["Camino"] if (i+j) % 2 == 0 else TIPOS["Muro"]
-
-        casilla = Casilla(terreno)
-        casilla.dibujar(canvas, j*TAM, i*TAM, TAM)
-        fila.append(casilla)
-
-    matriz.append(fila)
+mapa = Mapa(26, 30, TIPOS)
+mapa.dibujar(canvas, TAM)
 
 ventana.mainloop()
+
