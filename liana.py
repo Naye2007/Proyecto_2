@@ -2,7 +2,10 @@ from terreno import Terreno
 
 class Liana(Terreno):
     def permite_jugador(self):
-        return True
-
+        return False  
+    
     def permite_enemigo(self):
-        return False
+        return True  
+    
+    def get_color(self):
+        return "green"
