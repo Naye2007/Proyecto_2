@@ -19,74 +19,158 @@ class Mapa:
         self.asegurar_camino_valido(0, 0)
     
     def generar_mapa(self):
+        """Genera un mapa con muchos menos muros"""
         self.grid = []
         
+        # Crear matriz inicial con MÁS CAMINOS y MENOS MUROS
         for f in range(self.filas):
             fila = []
             for c in range(self.columnas):
-                fila.append(Casilla(Muro()))
+                # 80% caminos, 20% muros (antes era casi todo muros)
+                if random.random() < 0.8:  # ← MÁS CAMINOS
+                    fila.append(Casilla(Camino()))
+                else:
+                    fila.append(Casilla(Muro()))
             self.grid.append(fila)
-    
-        self._generar_caminos(0, 0)
-        self._agregar_variedad_terrenos()
-    
-    def _generar_caminos(self, f, c):
-        self.grid[f][c] = Casilla(Camino())
-        direcciones = [(0, 2), (2, 0), (0, -2), (-2, 0)]
-        random.shuffle(direcciones)
         
-        for df, dc in direcciones:
-            nf, nc = f + df, c + dc
-            if (0 <= nf < self.filas and 0 <= nc < self.columnas and 
-                isinstance(self.grid[nf][nc].terreno, Muro)):
-                self.grid[f + df//2][c + dc//2] = Casilla(Camino())
-                self._generar_caminos(nf, nc)
+        # Generar caminos principales para asegurar conectividad
+        self._generar_caminos_principales()
+        
+        # Agregar variedad de terrenos (menos muros)
+        self._agregar_variedad_terrenos()
+        
+        # Asegurar bordes transitables
+        self._hacer_bordes_transitables()
+    
+    def _generar_caminos_principales(self):
+        """Crea caminos principales para conectar el mapa"""
+        # Conectar esquinas
+        self._crear_camino(0, 0, self.filas-1, self.columnas-1)
+        
+        # Algunos caminos adicionales aleatorios
+        for _ in range(3):
+            f1 = random.randint(0, self.filas-1)
+            c1 = random.randint(0, self.columnas-1)
+            f2 = random.randint(0, self.filas-1)
+            c2 = random.randint(0, self.columnas-1)
+            self._crear_camino(f1, c1, f2, c2)
+    
+    def _crear_camino(self, f1, c1, f2, c2):
+        """Crea un camino entre dos puntos"""
+        f, c = f1, c1
+        
+        # Mover verticalmente
+        while f != f2:
+            if f < f2:
+                f += 1
+            else:
+                f -= 1
+            self.grid[f][c] = Casilla(Camino())
+        
+        # Mover horizontalmente
+        while c != c2:
+            if c < c2:
+                c += 1
+            else:
+                c -= 1
+            self.grid[f][c] = Casilla(Camino())
     
     def _agregar_variedad_terrenos(self):
-        clases = {
-            "Tunel": Tunel,
-            "Liana": Liana,
-            "Camino": Camino  
-        }
-        
+        """Agrega túneles y lianas, pero pocos muros adicionales"""
         for f in range(self.filas):
             for c in range(self.columnas):
                 if isinstance(self.grid[f][c].terreno, Camino):
+                    # 20% de probabilidad de cambiar a túnel o liana
                     if random.random() < 0.2:
-                        tipo = random.choice(["Tunel", "Liana"])
-                        self.grid[f][c] = Casilla(clases[tipo]())
+                        if random.random() < 0.5:
+                            self.grid[f][c] = Casilla(Tunel())
+                        else:
+                            self.grid[f][c] = Casilla(Liana())
+                    
+                    # SOLO 5% de probabilidad de convertir a muro
+                    elif random.random() < 0.05:
+                        self.grid[f][c] = Casilla(Muro())
+    
+    def _hacer_bordes_transitables(self):
+        """Asegura que los bordes tengan caminos"""
+        for c in range(self.columnas):
+            if isinstance(self.grid[0][c].terreno, Muro) and random.random() < 0.7:
+                self.grid[0][c] = Casilla(Camino())
+            if isinstance(self.grid[self.filas-1][c].terreno, Muro) and random.random() < 0.7:
+                self.grid[self.filas-1][c] = Casilla(Camino())
+        
+        for f in range(self.filas):
+            if isinstance(self.grid[f][0].terreno, Muro) and random.random() < 0.7:
+                self.grid[f][0] = Casilla(Camino())
+            if isinstance(self.grid[f][self.columnas-1].terreno, Muro) and random.random() < 0.7:
+                self.grid[f][self.columnas-1] = Casilla(Camino())
     
     def colocar_salidas(self):
-        cantidad = random.randint(1, 3)  
+        """Coloca SOLO 1 salida en posición de borde"""
         self.salidas = []
-        posiciones_borde = []
-        for f in [0, self.filas-1]: 
-            for c in range(self.columnas):
-                if self.grid[f][c].permite_jugador():
-                    posiciones_borde.append((f, c))
         
-        for c in [0, self.columnas-1]:  
+        # Posiciones candidatas en los bordes
+        candidatas = []
+        
+        # Borde superior e inferior
+        for c in range(1, self.columnas - 1):
+            if self.es_posicion_valida(0, c, es_jugador=True):
+                candidatas.append((0, c))
+            if self.es_posicion_valida(self.filas - 1, c, es_jugador=True):
+                candidatas.append((self.filas - 1, c))
+        
+        # Bordes izquierdo y derecho
+        for f in range(1, self.filas - 1):
+            if self.es_posicion_valida(f, 0, es_jugador=True):
+                candidatas.append((f, 0))
+            if self.es_posicion_valida(f, self.columnas - 1, es_jugador=True):
+                candidatas.append((f, self.columnas - 1))
+        
+        # Seleccionar SOLO 1 salida
+        if candidatas:
+            salida = random.choice(candidatas)
+            f, c = salida
+            self.grid[f][c] = Casilla(Salida())
+            self.salidas = [salida]
+            print(f"Salida colocada en: ({f}, {c})")
+        else:
+            # Si no hay candidatas, crear una forzada
+            self._crear_salida_forzada()
+
+    def _crear_salida_forzada(self):
+        """Crea una salida forzada si no hay candidatas"""
+        # Buscar cualquier posición de borde y hacerla salida
+        for c in [0, self.columnas-1]:
             for f in range(self.filas):
-                if self.grid[f][c].permite_jugador():
-                    posiciones_borde.append((f, c))
-        if posiciones_borde:
-            cantidad = min(cantidad, len(posiciones_borde))
-            self.salidas = random.sample(posiciones_borde, cantidad)
-            
-            for f, c in self.salidas:
                 self.grid[f][c] = Casilla(Salida())
+                self.salidas = [(f, c)]
+                return
+        
+        for f in [0, self.filas-1]:
+            for c in range(self.columnas):
+                self.grid[f][c] = Casilla(Salida())
+                self.salidas = [(f, c)]
+                return
     
     def hay_camino(self, f, c, visitados=None):
+        """Verifica si hay camino desde (f,c) hasta alguna salida"""
         if visitados is None:
             visitados = set()
+        
         if not (0 <= f < self.filas and 0 <= c < self.columnas) or (f, c) in visitados:
             return False
         
         visitados.add((f, c))
-        if self.grid[f][c].es_salida():
+        
+        # Si encontramos salida
+        if isinstance(self.grid[f][c].terreno, Salida):
             return True
-        if not self.grid[f][c].permite_jugador():
+        
+        # Si no es transitable para jugador
+        if not self.grid[f][c].terreno.permite_jugador():
             return False
+        
+        # Buscar en todas las direcciones
         movimientos = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         for df, dc in movimientos:
             if self.hay_camino(f + df, c + dc, visitados):
@@ -95,36 +179,19 @@ class Mapa:
         return False
     
     def asegurar_camino_valido(self, inicio_f, inicio_c):
-        intentos = 0
-        max_intentos = 10
-        
-        while not self.hay_camino(inicio_f, inicio_c) and intentos < max_intentos:
-            self.colocar_salidas()
-            intentos += 1
-        
-        if intentos == max_intentos:
-            self._crear_ruta_forzada(inicio_f, inicio_c)
+        """Asegura que haya al menos un camino válido desde la posición inicial"""
+        if not self.hay_camino(inicio_f, inicio_c):
+            # Si no hay camino, crear uno forzado a la salida más cercana
+            if self.salidas:
+                f_salida, c_salida = self.salidas[0]
+                self._crear_camino(inicio_f, inicio_c, f_salida, c_salida)
     
-    def _crear_ruta_forzada(self, inicio_f, inicio_c):
-        f, c = inicio_f, inicio_c
-        while f < self.filas - 1:
-            f += 1
-            self.grid[f][c] = Casilla(Camino())
+    def es_posicion_valida(self, f, c, es_jugador=True):
+        """Verifica si una posición es válida para moverse"""
+        if not (0 <= f < self.filas and 0 <= c < self.columnas):
+            return False
         
-        while c < self.columnas - 1:
-            c += 1
-            self.grid[f][c] = Casilla(Camino())
-        self.grid[f][c] = Casilla(Salida())
-        self.salidas = [(f, c)]
-    
-    def dibujar(self, canvas, tam_celda):
-        for f in range(self.filas):
-            for c in range(self.columnas):
-                x1 = c * tam_celda
-                y1 = f * tam_celda
-                x2 = x1 + tam_celda
-                y2 = y1 + tam_celda
-                
-                color = self.grid[f][c].get_color()
-                canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="black")
-    
+        if es_jugador:
+            return self.grid[f][c].terreno.permite_jugador()
+        else:
+            return self.grid[f][c].terreno.permite_enemigo()
