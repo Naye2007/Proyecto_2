@@ -8,6 +8,7 @@ class Cazador:
         self.velocidad = velocidad
         self.vivo = True
         self.contador_movimiento = 0
+        self.tiempo_muerte = 0
     
     def mover(self, jugador_fila, jugador_columna, mapa):
         if not self.vivo:

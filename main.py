@@ -10,6 +10,7 @@ from jugador import Jugador
 from cazador import Cazador
 from dificultad import Dificultad
 from casilla import Casilla
+from trampa import Trampa 
 
 class Main:
     def __init__(self):
@@ -37,16 +38,21 @@ class Main:
     def crear_interfaz(self):
         main_frame = Frame(self.ventana)
         main_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
+
         self.control_frame = Frame(main_frame)
         self.control_frame.pack(fill=X, pady=5)
+        self.control_frame.pack_forget()  
+
         self.info_frame = Frame(main_frame)
         self.info_frame.pack(fill=X, pady=5)
+        self.info_frame.pack_forget()  
         
-        self.label_info = Label(self.info_frame, text="Selecciona la dificultad para comenzar", 
-                               font=("Arial", 12), fg="blue", wraplength=1000)
+        self.label_info = Label(self.info_frame, text="", font=("Arial", 12), fg="blue", wraplength=1000)
         self.label_info.pack()
+
         self.stats_frame = Frame(main_frame)
         self.stats_frame.pack(fill=X, pady=8)
+        self.stats_frame.pack_forget() 
         self.energia_frame = Frame(self.stats_frame)
         self.energia_frame.pack(fill=X, pady=5)
         
@@ -63,8 +69,9 @@ class Main:
         self.label_energia.pack(side=LEFT, padx=5)
         
         self.label_correr = Label(self.energia_frame, text="Modo: CAMINANDO", font=("Arial", 10, "bold"), 
-                                 fg="blue", padx=10)
+                                fg="blue", padx=10)
         self.label_correr.pack(side=LEFT)
+        
         self.tiempo_frame = Frame(self.stats_frame)
         self.tiempo_frame.pack(fill=X, pady=5)
         
@@ -82,14 +89,9 @@ class Main:
 
         self.contenido_frame = Frame(main_frame)
         self.contenido_frame.pack(fill=BOTH, expand=True)
-        
-        self.leyenda_frame = Frame(self.contenido_frame, width=180, bg="lightgray")
-        self.leyenda_frame.pack(side=LEFT, fill=Y, padx=(0, 15))
-        self.leyenda_frame.pack_propagate(False)
-        
-        self.mapa_frame = Frame(self.contenido_frame, bg="white")
-        self.mapa_frame.pack(side=RIGHT, fill=BOTH, expand=True)
-        
+
+        self.leyenda_frame = None
+        self.mapa_frame = None
         self.canvas = None
 
         self.ventana.bind('<KeyPress>', self.manejar_teclado)
@@ -111,29 +113,57 @@ class Main:
 
     def mostrar_pantalla_inicio(self):
         self.detener_bucles()
+        self.control_frame.pack_forget()
+        self.info_frame.pack_forget()
+        self.stats_frame.pack_forget()
         self.limpiar_interfaz_juego()
 
-        titulo = Label(self.contenido_frame, text="MODO ESCAPA", font=("Arial", 24, "bold"), fg="darkblue")
-        titulo.pack(pady=20)
+        titulo = Label(self.contenido_frame, text="ESCAPA DEL LABERINTO", 
+                    font=("Arial", 28, "bold"), fg="darkblue")
+        titulo.pack(pady=30)
+
+        modos_frame = Frame(self.contenido_frame)
+        modos_frame.pack(pady=40)
         
-        descripcion = Label(self.contenido_frame, text="Selecciona la dificultad:", font=("Arial", 12), justify=CENTER)
-        descripcion.pack(pady=20)
+        modo_escape_frame = Frame(modos_frame, bg="lightblue", padx=20, pady=20)
+        modo_escape_frame.pack(side=LEFT, padx=30)
         
-        dificultades_frame = Frame(self.contenido_frame)
-        dificultades_frame.pack(pady=30)
+        Label(modo_escape_frame, text="MODO ESCAPA", font=("Arial", 16, "bold"), 
+            bg="lightblue", fg="darkblue").pack(pady=10)
         
-        dificultades = [("Fácil", "facil", "2 cazadores"),("Normal", "normal", "3 cazadores"), ("Difícil", "dificil", "4 cazadores"),("Extremo", "extremo", "5 cazadores")]
+        desc_escape = """Huye de los cazadores
+    Llega a la salida
+    Usa trampas estratégicas
+    +Puntos por tiempo rápido"""
         
-        for nombre, clave, desc in dificultades:
-            btn_frame = Frame(dificultades_frame)
-            btn_frame.pack(side=LEFT, padx=15)
-            
-            Button(btn_frame, text=nombre, font=("Arial", 11, "bold"),
-                  command=lambda c=clave: self.iniciar_juego(c),
-                  width=12, height=3, bg="lightblue").pack()
-            
-            Label(btn_frame, text=desc, font=("Arial", 8), justify=CENTER).pack(pady=5)
+        Label(modo_escape_frame, text=desc_escape, font=("Arial", 11), 
+            bg="lightblue", justify=LEFT).pack(pady=10)
+        
+        Button(modo_escape_frame, text="JUGAR MODO ESCAPA", 
+            font=("Arial", 12, "bold"), bg="blue", fg="white",
+            command=lambda: self.mostrar_seleccion_dificultad("escape"),
+            width=20, height=2).pack(pady=10)
+        
+        modo_cazador_frame = Frame(modos_frame, bg="lightgreen", padx=20, pady=20)
+        modo_cazador_frame.pack(side=LEFT, padx=30)
+        
+        Label(modo_cazador_frame, text="MODO CAZADOR", font=("Arial", 16, "bold"), 
+            bg="lightgreen", fg="darkgreen").pack(pady=10)
+        
+        desc_cazador = """Tú eres el cazador
+    Atrapa a los enemigos
+    Evita que escapen
+    +Puntos por capturas"""
+        
+        Label(modo_cazador_frame, text=desc_cazador, font=("Arial", 11), 
+            bg="lightgreen", justify=LEFT).pack(pady=10)
+        
+        Button(modo_cazador_frame, text="PRÓXIMAMENTE", 
+            font=("Arial", 12, "bold"), bg="gray", fg="white",
+            state="disabled", 
+            width=20, height=2).pack(pady=10)
     
+
     def limpiar_interfaz_juego(self):
         for widget in self.contenido_frame.winfo_children():
             widget.destroy()
@@ -146,23 +176,86 @@ class Main:
     
     def crear_leyenda_juego(self):
         Label(self.leyenda_frame, text="MODO ESCAPA", font=("Arial", 12, "bold"), 
-              bg="lightgray", pady=15).pack()
+            bg="lightgray", pady=15).pack()
         
-        bloques = ["Gris - Camino",
-            "Negro - Muro", 
-            "Azul - Túnel",
-            "Verde - Lianas",
-            "Amarillo - Salida",
-            "Rojo - Posición salida",
-            "Azul - Jugador caminando",
-            "Rojo - Jugador corriendo",
-            "Naranja - Cazadores"]
+        # NUEVA LEYENDA CON SISTEMA DE PUNTOS
+        controles_texto = """CONTROLES:
+
+    FLECHAS - Moverse
+    ESPACIO - Correr
+    T - Colocar trampa
+    R - Reiniciar
+
+    Máximo 3 trampas
+
+    BONIFICACIÓN POR TIEMPO:
+    < 30s = +100 puntos
+    30-50s = +50 puntos
+    > 50s = +25 puntos"""
+
+        Label(self.leyenda_frame, text=controles_texto, font=("Arial", 9), 
+            bg="lightgray", justify=LEFT, anchor="w", 
+            padx=10, pady=10).pack(fill=X)
+        
+        Frame(self.leyenda_frame, bg="darkgray", height=2).pack(fill=X, padx=5, pady=5)
+
+        bloques = [
+            "Gris - Camino", "Negro - Muro", "Azul - Túnel",
+            "Verde - Lianas", "Amarillo - Salida", "Rojo - Salida",
+            "Punto Azul - Jugador", "Punto Rojo - Jugador corriendo",
+            "Punto Naranja - Cazadores", "Morado - Trampas"
+        ]
         
         for bloque in bloques:
             Label(self.leyenda_frame, text=bloque, font=("Arial", 9), 
-                  bg="lightgray", justify=LEFT, anchor="w", 
-                  padx=10, pady=5).pack(fill=X)
+                bg="lightgray", justify=LEFT, anchor="w", 
+                padx=10, pady=3).pack(fill=X)
             Frame(self.leyenda_frame, bg="darkgray", height=1).pack(fill=X, padx=5)
+
+
+    def mostrar_seleccion_dificultad(self, modo_juego):
+        self.detener_bucles()
+        self.control_frame.pack_forget()
+        self.info_frame.pack_forget()
+        self.stats_frame.pack_forget()
+        self.limpiar_interfaz_juego()
+        
+        self.modo_juego_actual = modo_juego
+        
+        titulo_modo = "MODO ESCAPA" if modo_juego == "escape" else "MODO CAZADOR"
+        color_modo = "darkblue" if modo_juego == "escape" else "darkgreen"
+
+        titulo = Label(self.contenido_frame, text=titulo_modo, 
+                    font=("Arial", 24, "bold"), fg=color_modo)
+        titulo.pack(pady=20)
+        
+        descripcion = Label(self.contenido_frame, 
+                            text="Selecciona la dificultad:\nMayor dificultad = más cazadores = más puntos", 
+                            font=("Arial", 12), justify=CENTER)
+        descripcion.pack(pady=20)
+        
+        dificultades_frame = Frame(self.contenido_frame)
+        dificultades_frame.pack(pady=30)
+        
+        dificultades = [
+            ("Fácil", "facil", "1 cazador\nMultiplicador 1.0x"),
+            ("Normal", "normal", "2 cazadores\nMultiplicador 1.5x"), 
+            ("Difícil", "dificil", "3 cazadores\nMultiplicador 2.0x"),
+            ("Extremo", "extremo", "4 cazadores\nMultiplicador 3.0x")
+        ]
+        
+        for nombre, clave, desc in dificultades:
+            btn_frame = Frame(dificultades_frame)
+            btn_frame.pack(side=LEFT, padx=15)
+            
+            Button(btn_frame, text=nombre, font=("Arial", 11, "bold"),
+                command=lambda c=clave: self.iniciar_juego(c),
+                width=12, height=3, bg="lightblue").pack()
+            
+            Label(btn_frame, text=desc, font=("Arial", 8), justify=CENTER).pack(pady=5)
+
+        Button(self.contenido_frame, text="Volver al Menú Principal", 
+            font=("Arial", 10), command=self.mostrar_pantalla_inicio).pack(pady=20)
     
     def crear_mapa_juego(self):
         v_scrollbar = Scrollbar(self.mapa_frame, orient=VERTICAL)
@@ -185,29 +278,30 @@ class Main:
     
     def iniciar_juego(self, nivel_dificultad):
         self.detener_bucles()
+        
         self.dificultad = Dificultad(nivel_dificultad)
         config = self.dificultad.get_configuracion()
-        
+        self.control_frame.pack(fill=X, pady=5)
+        self.info_frame.pack(fill=X, pady=5)
+        self.stats_frame.pack(fill=X, pady=8)
+
         self.limpiar_interfaz_juego()
         self.crear_leyenda_juego()
         self.crear_mapa_juego()
-        
         self.generar_mapa()
-        
         self.mostrar_controles_juego()
-        
         self.juego_activo = True
         self.tiempo_inicio = time.time()
         self.puntaje = 0
-        
         self.actualizar_estadisticas()
-        self.label_info.config(text=f"¡Escapa! {config['nombre']} - {config['cantidad_enemigos']} cazadores")
-        
+        if hasattr(self, 'modo_juego_actual') and self.modo_juego_actual == "escape":
+            self.label_info.config(text=f"¡Modo Escapa! {config['nombre']} - {config['cantidad_enemigos']} cazadores")
+        else:
+            self.label_info.config(text=f"¡Modo Cazador! {config['nombre']} - {config['cantidad_enemigos']} cazadores")
         self.actualizar_energia()
         self.actualizar_enemigos()
         self.actualizar_tiempo()
         
-        print(f"Juego iniciado - Dificultad: {config['nombre']}")
     
     def mostrar_controles_juego(self):
         for widget in self.control_frame.winfo_children():
@@ -247,25 +341,43 @@ class Main:
         if self.juego_activo:
             tiempo_actual = time.time() - self.tiempo_inicio
             self.label_tiempo.config(text=f"Tiempo: {tiempo_actual:.1f}s")
-            self.bucle_tiempo_id = self.ventana.after(100, self.actualizar_tiempo)
-    
+            self.actualizar_estadisticas()  
+            self.bucle_tiempo_id = self.ventana.after(1000, self.actualizar_tiempo)
+        
     def actualizar_estadisticas(self):
         if hasattr(self, 'dificultad') and hasattr(self, 'enemigos'):
             config = self.dificultad.get_configuracion()
             self.label_dificultad.config(text=f"Dificultad: {config['nombre']}")
             self.label_enemigos.config(text=f"Cazadores: {len(self.enemigos)}")
-            self.bucle_tiempo_id = self.ventana.after(100, self.actualizar_tiempo)
-    
+            self.label_puntaje.config(text=f"Puntos: {int(self.puntaje)}")
+        
     def calcular_puntaje_victoria(self):
         tiempo_transcurrido = time.time() - self.tiempo_inicio
         config = self.dificultad.get_configuracion()
+
+        if tiempo_transcurrido < 30:
+            puntos_por_tiempo = 100
+            bonificacion_tiempo = " +100 pts"
+        elif tiempo_transcurrido < 50:
+            puntos_por_tiempo = 50
+            bonificacion_tiempo = "+50 pts"
+        else:
+            puntos_por_tiempo = 25
+            bonificacion_tiempo = "+25 pts"
         
-        puntos_base = 1000
-        puntos_tiempo = max(0, puntos_base - int(tiempo_transcurrido * 10))
-        puntos_final = puntos_tiempo * config['multiplicador_puntos']
+        puntos_base = 500
+        puntos_totales = puntos_base + puntos_por_tiempo + self.puntaje
+        puntos_final = puntos_totales * config['multiplicador_puntos']
         
-        return int(puntos_final), tiempo_transcurrido
-    
+        return {
+            'puntos_final': int(puntos_final),
+            'tiempo_transcurrido': tiempo_transcurrido,
+            'puntos_base': puntos_base,
+            'puntos_tiempo': puntos_por_tiempo,
+            'bonificacion_tiempo': bonificacion_tiempo,  # NUEVO: para mostrar en leyenda
+            'puntos_trampas': self.puntaje,
+            'multiplicador': config['multiplicador_puntos']
+        }
     def generar_mapa(self):
         print("Generando nuevo mapa...")
         self.mapa = Mapa(self.FILAS, self.COLUMNAS, self.TIPOS)
@@ -328,15 +440,15 @@ class Main:
     
     def actualizar_enemigos(self):
         if hasattr(self, 'enemigos') and self.juego_activo and hasattr(self, 'jugador'):
+            self.verificar_trampas_enemigos()
+            self.reaparecer_enemigos()
             for enemigo in self.enemigos:
                 if enemigo.vivo:
                     enemigo.mover(self.jugador.fila, self.jugador.columna, self.mapa)
-            
             self.verificar_colision_enemigos()
             self.dibujar_mapa()
-        
         if self.juego_activo:
-            self.ventana.after(500, self.actualizar_enemigos)
+            self.bucle_enemigos_id = self.ventana.after(700, self.actualizar_enemigos)
     
     def verificar_colision_enemigos(self):
         if not hasattr(self, 'jugador') or not self.juego_activo:
@@ -365,53 +477,30 @@ class Main:
     
     def mostrar_victoria(self):
         self.detener_bucles()
-        self.juego_activo = False
-        puntaje_final, tiempo_transcurrido = self.calcular_puntaje_victoria()
-        self.puntaje = puntaje_final
+        puntaje_detalle = self.calcular_puntaje_victoria()
+        self.puntaje = puntaje_detalle['puntos_final']
         
         config = self.dificultad.get_configuracion()
-        mensaje = f"¡VICTORIA!\nTiempo: {tiempo_transcurrido:.1f}s\nDificultad: {config['nombre']}\nPuntos: {puntaje_final}\nMultiplicador: {config['multiplicador_puntos']}x\nPresiona 'Reiniciar' para jugar otra vez"
-        self.label_info.config(text=mensaje, fg="green")
+        mensaje = f"""¡VICTORIA! 🎉
+
+    Tiempo: {puntaje_detalle['tiempo_transcurrido']:.1f}s
+    Dificultad: {config['nombre']} (x{puntaje_detalle['multiplicador']})
+
+    DESGLOSE DE PUNTOS:
+    Victoria: {puntaje_detalle['puntos_base']}
+    {puntaje_detalle['bonificacion_tiempo']}
+    Eliminaciones: {puntaje_detalle['puntos_trampas']}
+    Multiplicador: x{puntaje_detalle['multiplicador']}
+
+    PUNTOS TOTALES: {puntaje_detalle['puntos_final']}
+
+    Presiona 'Reiniciar' para jugar otra vez"""
+        
+        self.label_info.config(text=mensaje, fg="green", justify=LEFT)
         
         self.dibujar_mapa()
         self.actualizar_estadisticas()
-        print(f"¡VICTORIA! Tiempo: {tiempo_transcurrido:.1f}s, Puntos: {puntaje_final}")
-    
-    def manejar_teclado(self, event):
-        if not hasattr(self, 'jugador') or not self.juego_activo:
-            return
-        
-        movimiento_realizado = False
-        
-        if event.keysym == 'Up':
-            movimiento_realizado = self.jugador.mover(-1, 0, self.mapa)
-        elif event.keysym == 'Down':
-            movimiento_realizado = self.jugador.mover(1, 0, self.mapa)
-        elif event.keysym == 'Left':
-            movimiento_realizado = self.jugador.mover(0, -1, self.mapa)
-        elif event.keysym == 'Right':
-            movimiento_realizado = self.jugador.mover(0, 1, self.mapa)
-        elif event.keysym == 'space':
-            if self.jugador.toggle_correr():
-                if self.jugador.corriendo:
-                    print("Modo CORRER activado - Moverás 2 casillas por vez")
-                else:
-                    print("Modo CAMINAR activado")
-            else:
-                print("No hay suficiente energía para correr (mínimo 15%)")
-            self.dibujar_mapa()
-            return
-        elif event.keysym.lower() == 'r':
-            self.reiniciar_juego()
-            return
-        
-        if movimiento_realizado:
-            self.dibujar_mapa()
-            
-            if self.verificar_victoria():
-                self.mostrar_victoria()
-            else:
-                self.actualizar_estadisticas()
+        print(f"¡VICTORIA! Puntos: {puntaje_detalle['puntos_final']}")
     
     def reiniciar_juego(self):
         if self.dificultad:
@@ -464,7 +553,18 @@ class Main:
                                    fill=color_jugador, outline=borde, width=2)
             self.canvas.create_text(x, y, text=texto, fill="white", 
                                    font=("Arial", 10, "bold"))
-        
+
+        if hasattr(self, 'jugador'):
+            for trampa in self.jugador.get_trampas_activas():
+                x = trampa.columna * self.TAM_CELDA + self.TAM_CELDA // 2
+                y = trampa.fila * self.TAM_CELDA + self.TAM_CELDA // 2
+                radio = self.TAM_CELDA // 4
+                self.canvas.create_oval(x - radio, y - radio, x + radio, y + radio,
+                                    fill="purple", outline="darkviolet", width=2)
+                self.canvas.create_text(x, y, text="T", fill="white", 
+                                    font=("Arial", 7, "bold"))
+                
+
         if hasattr(self, 'enemigos'):
             for i, enemigo in enumerate(self.enemigos):
                 if enemigo.vivo:
@@ -478,7 +578,149 @@ class Main:
                                            font=("Arial", 8, "bold"))
         
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
+
+    def verificar_trampas_enemigos(self):
+        if not hasattr(self, 'jugador') or not hasattr(self, 'enemigos'):
+            return
+        
+        trampas_a_eliminar = []
+        enemigos_a_eliminar = []
+
+        for trampa in self.jugador.get_trampas_activas():
+            for enemigo in self.enemigos:
+                if (enemigo.vivo and 
+                    enemigo.fila == trampa.fila and 
+                    enemigo.columna == trampa.columna):
+                    print(f" ¡Trampa activada! Cazador eliminado en ({enemigo.fila}, {enemigo.columna})")
+                    enemigo.vivo = False
+                    enemigo.tiempo_muerte = time.time()
+                    enemigos_a_eliminar.append(enemigo)
+                    trampa.desactivar()
+                    trampas_a_eliminar.append(trampa)
+                    config = self.dificultad.get_configuracion()
+                    bono_puntos = 50 * config['multiplicador_puntos']
+                    self.puntaje += bono_puntos
+                    print(f" +{int(bono_puntos)} puntos por eliminar cazador")
+                    self.actualizar_estadisticas()
+                    
+                    break  
+        for trampa in trampas_a_eliminar:
+            self.jugador.eliminar_trampa(trampa)
+
+
+    def reaparecer_enemigos(self):
+        if not hasattr(self, 'enemigos'):
+            return
+        
+        tiempo_actual = time.time()
+        
+        for enemigo in self.enemigos:
+            if not enemigo.vivo and hasattr(enemigo, 'tiempo_muerte'):
+                if tiempo_actual - enemigo.tiempo_muerte >= 10:
+                    nueva_posicion = self.buscar_posicion_valida_enemigo()
+                    if nueva_posicion:
+                        fila, columna = nueva_posicion
+                        enemigo.fila = fila
+                        enemigo.columna = columna
+                        enemigo.vivo = True 
+
+    def buscar_posicion_valida_enemigo(self):
+        posiciones_validas = []
+        for f in range(self.FILAS):
+            for c in range(self.COLUMNAS):
+                if (self.mapa.es_posicion_valida(f, c, es_jugador=False) and
+                    (f, c) != (self.jugador.fila, self.jugador.columna) and
+                    (f, c) not in self.mapa.salidas):
+                    distancia = abs(f - self.jugador.fila) + abs(c - self.jugador.columna)
+                    if distancia > 3: 
+                        posiciones_validas.append((f, c))
+        if posiciones_validas:
+            return random.choice(posiciones_validas)
+        return None
     
+    def manejar_teclado(self, event):
+        if not hasattr(self, 'jugador') or not self.juego_activo:
+            return
+        
+        movimiento_realizado = False
+        
+        if event.keysym == 'Up':
+            movimiento_realizado = self.jugador.mover(-1, 0, self.mapa)
+        elif event.keysym == 'Down':
+            movimiento_realizado = self.jugador.mover(1, 0, self.mapa)
+        elif event.keysym == 'Left':
+            movimiento_realizado = self.jugador.mover(0, -1, self.mapa)
+        elif event.keysym == 'Right':
+            movimiento_realizado = self.jugador.mover(0, 1, self.mapa)
+        elif event.keysym == 'space':
+            if self.jugador.toggle_correr():
+                if self.jugador.corriendo:
+                    print("Modo CORRER activado")
+                else:
+                    print("Modo CAMINAR activado")
+            else:
+                print("No hay suficiente energía para correr (mínimo 15%)")
+            self.dibujar_mapa()
+            return
+        elif event.keysym.lower() == 't': 
+            if self.jugador.colocar_trampa(time.time()):
+                self.dibujar_mapa()
+                self.actualizar_estadisticas()
+            return
+        elif event.keysym.lower() == 'r':
+            self.reiniciar_juego()
+            return
+        
+        if movimiento_realizado:
+            self.dibujar_mapa()
+            
+            if self.verificar_victoria():
+                self.mostrar_victoria()
+            else:
+                self.actualizar_estadisticas()    
+
+    def manejar_teclado(self, event):
+        if not hasattr(self, 'jugador') or not self.juego_activo:
+            return
+        
+        movimiento_realizado = False
+        
+        if event.keysym == 'Up':
+            movimiento_realizado = self.jugador.mover(-1, 0, self.mapa)
+        elif event.keysym == 'Down':
+            movimiento_realizado = self.jugador.mover(1, 0, self.mapa)
+        elif event.keysym == 'Left':
+            movimiento_realizado = self.jugador.mover(0, -1, self.mapa)
+        elif event.keysym == 'Right':
+            movimiento_realizado = self.jugador.mover(0, 1, self.mapa)
+        elif event.keysym == 'space':
+            if self.jugador.toggle_correr():
+                if self.jugador.corriendo:
+                    print("Modo CORRER activado - Moverás 2 casillas por vez")
+                else:
+                    print("Modo CAMINAR activado")
+            else:
+                print("No hay suficiente energía para correr (mínimo 15%)")
+            self.dibujar_mapa()
+            return
+        elif event.keysym.lower() == 't': 
+
+            if self.jugador.colocar_trampa(time.time()):
+                self.dibujar_mapa()
+                self.actualizar_estadisticas()
+            return
+        elif event.keysym.lower() == 'r':
+            self.reiniciar_juego()
+            return
+        
+        if movimiento_realizado:
+            self.dibujar_mapa()
+            
+            if self.verificar_victoria():
+                self.mostrar_victoria()
+            else:
+                self.actualizar_estadisticas()
+
     def ejecutar(self):
         self.ventana.mainloop()
 
