@@ -10,17 +10,11 @@ class Cazador:
         self.contador_movimiento = 0
     
     def mover(self, jugador_fila, jugador_columna, mapa):
-        """Mueve el cazador hacia el jugador según su velocidad"""
         if not self.vivo:
             return
-        
         self.contador_movimiento += 1
-        
-        # Mover según la velocidad (velocidad 1.0 = mover cada frame, 0.5 = mover cada 2 frames, etc.)
         if self.contador_movimiento >= (1 / self.velocidad):
             self.contador_movimiento = 0
-            
-            # Buscar el mejor movimiento hacia el jugador
             mejor_movimiento = self._encontrar_mejor_movimiento(jugador_fila, jugador_columna, mapa)
             
             if mejor_movimiento:
@@ -29,8 +23,7 @@ class Cazador:
                 self.columna += dc
     
     def _encontrar_mejor_movimiento(self, jugador_fila, jugador_columna, mapa):
-        """Encuentra el movimiento que acerca más al jugador"""
-        movimientos = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # derecha, abajo, izquierda, arriba
+        movimientos = [(0, 1), (1, 0), (0, -1), (-1, 0)] 
         movimientos_validos = []
         
         for df, dc in movimientos:

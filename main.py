@@ -13,13 +13,10 @@ from casilla import Casilla
 
 class Main:
     def __init__(self):
-        # Configuración inicial
         self.TAM_CELDA = 25
         self.FILAS = 20
         self.COLUMNAS = 25
         self.TIPOS = {"Camino": Camino, "Muro": Muro, "Tunel": Tunel, "Liana": Liana}
-        
-        # Estado del juego
         self.juego_activo = False
         self.modo_escape = True
         self.tiempo_inicio = 0
@@ -28,40 +25,28 @@ class Main:
         self.bucle_energia_id = None
         self.bucle_enemigos_id = None
         self.bucle_tiempo_id = None
-        # Crear ventana principal
         self.ventana = Tk()
         self.ventana.title("Laberinto - Modo Escapa")
         self.ventana.geometry("1200x800")
         self.ventana.resizable(True, True)
         
-        # Crear widgets
         self.crear_interfaz()
         
-        # Mostrar pantalla de inicio
         self.mostrar_pantalla_inicio()
     
     def crear_interfaz(self):
-        # Frame principal
         main_frame = Frame(self.ventana)
         main_frame.pack(fill=BOTH, expand=True, padx=10, pady=10)
-        
-        # Panel de controles superior
         self.control_frame = Frame(main_frame)
         self.control_frame.pack(fill=X, pady=5)
-        
-        # Información del juego
         self.info_frame = Frame(main_frame)
         self.info_frame.pack(fill=X, pady=5)
         
         self.label_info = Label(self.info_frame, text="Selecciona la dificultad para comenzar", 
                                font=("Arial", 12), fg="blue", wraplength=1000)
         self.label_info.pack()
-        
-        # Panel de estadísticas
         self.stats_frame = Frame(main_frame)
         self.stats_frame.pack(fill=X, pady=8)
-        
-        # Barra de energía
         self.energia_frame = Frame(self.stats_frame)
         self.energia_frame.pack(fill=X, pady=5)
         
@@ -80,8 +65,6 @@ class Main:
         self.label_correr = Label(self.energia_frame, text="Modo: CAMINANDO", font=("Arial", 10, "bold"), 
                                  fg="blue", padx=10)
         self.label_correr.pack(side=LEFT)
-        
-        # Panel de tiempo y puntuación
         self.tiempo_frame = Frame(self.stats_frame)
         self.tiempo_frame.pack(fill=X, pady=5)
         
@@ -97,31 +80,23 @@ class Main:
         self.label_enemigos = Label(self.tiempo_frame, text="Cazadores: 0", font=("Arial", 10, "bold"), fg="orange")
         self.label_enemigos.pack(side=LEFT, padx=20)
 
-        # Frame para contenido principal
         self.contenido_frame = Frame(main_frame)
         self.contenido_frame.pack(fill=BOTH, expand=True)
         
-        # Leyenda a la IZQUIERDA
         self.leyenda_frame = Frame(self.contenido_frame, width=180, bg="lightgray")
         self.leyenda_frame.pack(side=LEFT, fill=Y, padx=(0, 15))
         self.leyenda_frame.pack_propagate(False)
         
-        # Frame para el mapa
         self.mapa_frame = Frame(self.contenido_frame, bg="white")
         self.mapa_frame.pack(side=RIGHT, fill=BOTH, expand=True)
         
-        # Canvas para el mapa (se crea después)
         self.canvas = None
-        
-        # Bind de teclado
+
         self.ventana.bind('<KeyPress>', self.manejar_teclado)
         self.ventana.focus_set()
     
     def detener_bucles(self):
-        """Detiene todos los bucles de actualización"""
         self.juego_activo = False
-        
-        # Cancelar bucles programados
         if self.bucle_energia_id:
             self.ventana.after_cancel(self.bucle_energia_id)
             self.bucle_energia_id = None
@@ -135,28 +110,19 @@ class Main:
             self.bucle_tiempo_id = None
 
     def mostrar_pantalla_inicio(self):
-        """Muestra la pantalla de selección de dificultad"""
         self.detener_bucles()
         self.limpiar_interfaz_juego()
-        
-        # Título
+
         titulo = Label(self.contenido_frame, text="MODO ESCAPA", font=("Arial", 24, "bold"), fg="darkblue")
         titulo.pack(pady=20)
         
-        # Descripción
         descripcion = Label(self.contenido_frame, text="Selecciona la dificultad:", font=("Arial", 12), justify=CENTER)
         descripcion.pack(pady=20)
         
-        # Botones de dificultad
         dificultades_frame = Frame(self.contenido_frame)
         dificultades_frame.pack(pady=30)
         
-        dificultades = [
-            ("Fácil", "facil", "2 cazadores"),
-            ("Normal", "normal", "3 cazadores"), 
-            ("Difícil", "dificil", "4 cazadores"),
-            ("Extremo", "extremo", "5 cazadores")
-        ]
+        dificultades = [("Fácil", "facil", "2 cazadores"),("Normal", "normal", "3 cazadores"), ("Difícil", "dificil", "4 cazadores"),("Extremo", "extremo", "5 cazadores")]
         
         for nombre, clave, desc in dificultades:
             btn_frame = Frame(dificultades_frame)
@@ -169,11 +135,8 @@ class Main:
             Label(btn_frame, text=desc, font=("Arial", 8), justify=CENTER).pack(pady=5)
     
     def limpiar_interfaz_juego(self):
-        """Limpia la interfaz para el juego"""
         for widget in self.contenido_frame.winfo_children():
             widget.destroy()
-        
-        # Recrear leyenda y mapa frame
         self.leyenda_frame = Frame(self.contenido_frame, width=180, bg="lightgray")
         self.leyenda_frame.pack(side=LEFT, fill=Y, padx=(0, 15))
         self.leyenda_frame.pack_propagate(False)
@@ -182,12 +145,10 @@ class Main:
         self.mapa_frame.pack(side=RIGHT, fill=BOTH, expand=True)
     
     def crear_leyenda_juego(self):
-        """Crea la leyenda durante el juego"""
         Label(self.leyenda_frame, text="MODO ESCAPA", font=("Arial", 12, "bold"), 
               bg="lightgray", pady=15).pack()
         
-        bloques = [
-            "Gris - Camino",
+        bloques = ["Gris - Camino",
             "Negro - Muro", 
             "Azul - Túnel",
             "Verde - Lianas",
@@ -195,8 +156,7 @@ class Main:
             "Rojo - Posición salida",
             "Azul - Jugador caminando",
             "Rojo - Jugador corriendo",
-            "Naranja - Cazadores"
-        ]
+            "Naranja - Cazadores"]
         
         for bloque in bloques:
             Label(self.leyenda_frame, text=bloque, font=("Arial", 9), 
@@ -205,15 +165,12 @@ class Main:
             Frame(self.leyenda_frame, bg="darkgray", height=1).pack(fill=X, padx=5)
     
     def crear_mapa_juego(self):
-        """Crea el canvas del mapa durante el juego"""
-        # Scrollbars para el mapa
         v_scrollbar = Scrollbar(self.mapa_frame, orient=VERTICAL)
         h_scrollbar = Scrollbar(self.mapa_frame, orient=HORIZONTAL)
         
         v_scrollbar.pack(side=RIGHT, fill=Y)
         h_scrollbar.pack(side=BOTTOM, fill=X)
-        
-        # Canvas con scrollbars
+
         self.canvas = Canvas(self.mapa_frame, 
                             width=self.COLUMNAS * self.TAM_CELDA,
                             height=self.FILAS * self.TAM_CELDA,
@@ -227,32 +184,25 @@ class Main:
         h_scrollbar.config(command=self.canvas.xview)
     
     def iniciar_juego(self, nivel_dificultad):
-        """Inicia el juego con la dificultad seleccionada"""
         self.detener_bucles()
         self.dificultad = Dificultad(nivel_dificultad)
         config = self.dificultad.get_configuracion()
         
-        # Configurar interfaz de juego
         self.limpiar_interfaz_juego()
         self.crear_leyenda_juego()
         self.crear_mapa_juego()
         
-        # Generar juego
         self.generar_mapa()
         
-        # Configurar botones de control
         self.mostrar_controles_juego()
         
-        # Iniciar estado del juego
         self.juego_activo = True
         self.tiempo_inicio = time.time()
         self.puntaje = 0
         
-        # Actualizar interfaz
         self.actualizar_estadisticas()
         self.label_info.config(text=f"¡Escapa! {config['nombre']} - {config['cantidad_enemigos']} cazadores")
         
-        # Iniciar bucles de actualización
         self.actualizar_energia()
         self.actualizar_enemigos()
         self.actualizar_tiempo()
@@ -260,7 +210,6 @@ class Main:
         print(f"Juego iniciado - Dificultad: {config['nombre']}")
     
     def mostrar_controles_juego(self):
-        """Muestra los controles durante el juego"""
         for widget in self.control_frame.winfo_children():
             widget.destroy()
         
@@ -295,14 +244,12 @@ class Main:
             self.bucle_energia_id = self.ventana.after(100, self.actualizar_energia)
     
     def actualizar_tiempo(self):
-        """Actualiza el tiempo transcurrido"""
         if self.juego_activo:
             tiempo_actual = time.time() - self.tiempo_inicio
             self.label_tiempo.config(text=f"Tiempo: {tiempo_actual:.1f}s")
             self.bucle_tiempo_id = self.ventana.after(100, self.actualizar_tiempo)
     
     def actualizar_estadisticas(self):
-        """Actualiza todas las estadísticas"""
         if hasattr(self, 'dificultad') and hasattr(self, 'enemigos'):
             config = self.dificultad.get_configuracion()
             self.label_dificultad.config(text=f"Dificultad: {config['nombre']}")
@@ -310,11 +257,9 @@ class Main:
             self.bucle_tiempo_id = self.ventana.after(100, self.actualizar_tiempo)
     
     def calcular_puntaje_victoria(self):
-        """Calcula el puntaje basado en tiempo y dificultad"""
         tiempo_transcurrido = time.time() - self.tiempo_inicio
         config = self.dificultad.get_configuracion()
         
-        # Fórmula: Puntos base - tiempo + bonus por dificultad
         puntos_base = 1000
         puntos_tiempo = max(0, puntos_base - int(tiempo_transcurrido * 10))
         puntos_final = puntos_tiempo * config['multiplicador_puntos']
@@ -322,7 +267,6 @@ class Main:
         return int(puntos_final), tiempo_transcurrido
     
     def generar_mapa(self):
-        """Genera un nuevo mapa con jugador y enemigos"""
         print("Generando nuevo mapa...")
         self.mapa = Mapa(self.FILAS, self.COLUMNAS, self.TIPOS)
         self.crear_jugador_aleatorio()
@@ -334,11 +278,9 @@ class Main:
             self.label_info.config(text=info_text, fg="blue")
         else:
             self.label_info.config(text="Mapa generado - Busca la salida!", fg="blue")
-        
-        print(f"Mapa generado con {len(self.mapa.salidas)} salida(s) y {len(self.enemigos)} cazador(es)")
+
     
     def crear_jugador_aleatorio(self):
-        """Crea un jugador en una posición aleatoria válida"""
         posiciones_validas = []
         
         for f in range(self.FILAS):
@@ -354,59 +296,49 @@ class Main:
                 fila, columna = random.choice(posiciones_validas)
                 
             self.jugador = Jugador(fila, columna)
-            print(f"Jugador creado en posición: ({fila}, {columna})")
         else:
             self.jugador = Jugador(1, 1)
             self.mapa.grid[1][1] = Casilla(Camino())
-            print("Jugador creado en posición forzada: (1, 1)")
     
     def crear_enemigos_aleatorios(self):
-        """Crea enemigos en posiciones aleatorias válidas"""
         self.enemigos = []
         config = self.dificultad.get_configuracion()
         posiciones_validas = []
-        
-        # Buscar posiciones válidas para enemigos (lejos del jugador)
+    
         for f in range(self.FILAS):
             for c in range(self.COLUMNAS):
                 if (self.mapa.es_posicion_valida(f, c, es_jugador=False) and
                     (f, c) != (self.jugador.fila, self.jugador.columna) and
                     (f, c) not in self.mapa.salidas):
                     
-                    # Calcular distancia al jugador
                     distancia = abs(f - self.jugador.fila) + abs(c - self.jugador.columna)
-                    if distancia > 5:  # Solo posiciones lejanas al jugador
+                    if distancia > 5:  
                         posiciones_validas.append((f, c))
         
-        # Crear enemigos (máximo la cantidad configurada)
         cantidad = min(config['cantidad_enemigos'], len(posiciones_validas))
         
         for i in range(cantidad):
             if posiciones_validas:
                 fila, columna = random.choice(posiciones_validas)
-                posiciones_validas.remove((fila, columna))  # Evitar duplicados
+                posiciones_validas.remove((fila, columna))  
                 
                 enemigo = Cazador(fila, columna, config['velocidad_enemigos'])
                 self.enemigos.append(enemigo)
                 print(f"Cazador {i+1} creado en posición: ({fila}, {columna})")
     
     def actualizar_enemigos(self):
-        """Actualiza el movimiento de los enemigos cada 500ms"""
         if hasattr(self, 'enemigos') and self.juego_activo and hasattr(self, 'jugador'):
             for enemigo in self.enemigos:
                 if enemigo.vivo:
                     enemigo.mover(self.jugador.fila, self.jugador.columna, self.mapa)
             
-            # Verificar colisiones después de mover enemigos
             self.verificar_colision_enemigos()
             self.dibujar_mapa()
         
-        # Programar siguiente actualización
         if self.juego_activo:
             self.ventana.after(500, self.actualizar_enemigos)
     
     def verificar_colision_enemigos(self):
-        """Verifica si algún enemigo atrapó al jugador"""
         if not hasattr(self, 'jugador') or not self.juego_activo:
             return
         
@@ -423,7 +355,6 @@ class Main:
                 break
     
     def verificar_victoria(self):
-        """Verifica si el jugador llegó a la salida"""
         if not hasattr(self, 'jugador') or not self.juego_activo:
             return False
         
@@ -433,14 +364,13 @@ class Main:
         return False
     
     def mostrar_victoria(self):
-        """Muestra la pantalla de victoria"""
         self.detener_bucles()
         self.juego_activo = False
         puntaje_final, tiempo_transcurrido = self.calcular_puntaje_victoria()
         self.puntaje = puntaje_final
         
         config = self.dificultad.get_configuracion()
-        mensaje = f"¡VICTORIA! 🎉\nTiempo: {tiempo_transcurrido:.1f}s\nDificultad: {config['nombre']}\nPuntos: {puntaje_final}\nMultiplicador: {config['multiplicador_puntos']}x\nPresiona 'Reiniciar' para jugar otra vez"
+        mensaje = f"¡VICTORIA!\nTiempo: {tiempo_transcurrido:.1f}s\nDificultad: {config['nombre']}\nPuntos: {puntaje_final}\nMultiplicador: {config['multiplicador_puntos']}x\nPresiona 'Reiniciar' para jugar otra vez"
         self.label_info.config(text=mensaje, fg="green")
         
         self.dibujar_mapa()
@@ -448,7 +378,6 @@ class Main:
         print(f"¡VICTORIA! Tiempo: {tiempo_transcurrido:.1f}s, Puntos: {puntaje_final}")
     
     def manejar_teclado(self, event):
-        """Maneja el movimiento del jugador con teclado"""
         if not hasattr(self, 'jugador') or not self.juego_activo:
             return
         
@@ -463,7 +392,6 @@ class Main:
         elif event.keysym == 'Right':
             movimiento_realizado = self.jugador.mover(0, 1, self.mapa)
         elif event.keysym == 'space':
-            # Tecla ESPACIO para correr
             if self.jugador.toggle_correr():
                 if self.jugador.corriendo:
                     print("Modo CORRER activado - Moverás 2 casillas por vez")
@@ -486,7 +414,6 @@ class Main:
                 self.actualizar_estadisticas()
     
     def reiniciar_juego(self):
-        """Reinicia el juego con la misma dificultad"""
         if self.dificultad:
             self.detener_bucles()
             config = self.dificultad.get_configuracion()
@@ -495,13 +422,11 @@ class Main:
             self.mostrar_pantalla_inicio()
     
     def dibujar_mapa(self):
-        """Dibuja el mapa completo con todos los elementos"""
         if not self.canvas:
             return
             
         self.canvas.delete("all")
         
-        # Dibujar mapa completo
         for f in range(self.FILAS):
             for c in range(self.COLUMNAS):
                 x1 = c * self.TAM_CELDA
@@ -511,8 +436,6 @@ class Main:
                 
                 color = self.mapa.grid[f][c].get_color()
                 self.canvas.create_rectangle(x1, y1, x2, y2, fill=color, outline="darkgray", width=1)
-        
-        # Marcar salidas
         for f, c in self.mapa.salidas:
             x = c * self.TAM_CELDA + self.TAM_CELDA // 2
             y = f * self.TAM_CELDA + self.TAM_CELDA // 2
@@ -523,7 +446,6 @@ class Main:
             self.canvas.create_text(x, y, text="SAL", fill="white", 
                                    font=("Arial", 9, "bold"))
         
-        # Dibujar jugador
         if hasattr(self, 'jugador'):
             x = self.jugador.columna * self.TAM_CELDA + self.TAM_CELDA // 2
             y = self.jugador.fila * self.TAM_CELDA + self.TAM_CELDA // 2
@@ -543,7 +465,6 @@ class Main:
             self.canvas.create_text(x, y, text=texto, fill="white", 
                                    font=("Arial", 10, "bold"))
         
-        # Dibujar enemigos
         if hasattr(self, 'enemigos'):
             for i, enemigo in enumerate(self.enemigos):
                 if enemigo.vivo:
@@ -551,17 +472,14 @@ class Main:
                     y = enemigo.fila * self.TAM_CELDA + self.TAM_CELDA // 2
                     radio = self.TAM_CELDA // 3
                     
-                    # Cazador naranja
                     self.canvas.create_rectangle(x - radio, y - radio, x + radio, y + radio,
                                                fill="orange", outline="darkorange", width=2)
                     self.canvas.create_text(x, y, text="C", fill="white", 
                                            font=("Arial", 8, "bold"))
         
-        # Actualizar región de scroll
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
     
     def ejecutar(self):
-        """Inicia la aplicación"""
         self.ventana.mainloop()
 
 if __name__ == "__main__":

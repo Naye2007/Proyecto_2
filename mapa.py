@@ -19,35 +19,22 @@ class Mapa:
         self.asegurar_camino_valido(0, 0)
     
     def generar_mapa(self):
-        """Genera un mapa con muchos menos muros"""
+
         self.grid = []
-        
-        # Crear matriz inicial con MÁS CAMINOS y MENOS MUROS
         for f in range(self.filas):
             fila = []
             for c in range(self.columnas):
-                # 80% caminos, 20% muros (antes era casi todo muros)
-                if random.random() < 0.8:  # ← MÁS CAMINOS
+                if random.random() < 0.8:  
                     fila.append(Casilla(Camino()))
                 else:
                     fila.append(Casilla(Muro()))
             self.grid.append(fila)
-        
-        # Generar caminos principales para asegurar conectividad
         self._generar_caminos_principales()
-        
-        # Agregar variedad de terrenos (menos muros)
         self._agregar_variedad_terrenos()
-        
-        # Asegurar bordes transitables
         self._hacer_bordes_transitables()
     
     def _generar_caminos_principales(self):
-        """Crea caminos principales para conectar el mapa"""
-        # Conectar esquinas
         self._crear_camino(0, 0, self.filas-1, self.columnas-1)
-        
-        # Algunos caminos adicionales aleatorios
         for _ in range(3):
             f1 = random.randint(0, self.filas-1)
             c1 = random.randint(0, self.columnas-1)
@@ -56,18 +43,14 @@ class Mapa:
             self._crear_camino(f1, c1, f2, c2)
     
     def _crear_camino(self, f1, c1, f2, c2):
-        """Crea un camino entre dos puntos"""
         f, c = f1, c1
         
-        # Mover verticalmente
         while f != f2:
             if f < f2:
                 f += 1
             else:
                 f -= 1
             self.grid[f][c] = Casilla(Camino())
-        
-        # Mover horizontalmente
         while c != c2:
             if c < c2:
                 c += 1
@@ -76,23 +59,19 @@ class Mapa:
             self.grid[f][c] = Casilla(Camino())
     
     def _agregar_variedad_terrenos(self):
-        """Agrega túneles y lianas, pero pocos muros adicionales"""
         for f in range(self.filas):
             for c in range(self.columnas):
                 if isinstance(self.grid[f][c].terreno, Camino):
-                    # 20% de probabilidad de cambiar a túnel o liana
                     if random.random() < 0.2:
                         if random.random() < 0.5:
                             self.grid[f][c] = Casilla(Tunel())
                         else:
                             self.grid[f][c] = Casilla(Liana())
                     
-                    # SOLO 5% de probabilidad de convertir a muro
                     elif random.random() < 0.05:
                         self.grid[f][c] = Casilla(Muro())
     
     def _hacer_bordes_transitables(self):
-        """Asegura que los bordes tengan caminos"""
         for c in range(self.columnas):
             if isinstance(self.grid[0][c].terreno, Muro) and random.random() < 0.7:
                 self.grid[0][c] = Casilla(Camino())
@@ -106,27 +85,20 @@ class Mapa:
                 self.grid[f][self.columnas-1] = Casilla(Camino())
     
     def colocar_salidas(self):
-        """Coloca SOLO 1 salida en posición de borde"""
         self.salidas = []
         
-        # Posiciones candidatas en los bordes
         candidatas = []
         
-        # Borde superior e inferior
         for c in range(1, self.columnas - 1):
             if self.es_posicion_valida(0, c, es_jugador=True):
                 candidatas.append((0, c))
             if self.es_posicion_valida(self.filas - 1, c, es_jugador=True):
                 candidatas.append((self.filas - 1, c))
-        
-        # Bordes izquierdo y derecho
         for f in range(1, self.filas - 1):
             if self.es_posicion_valida(f, 0, es_jugador=True):
                 candidatas.append((f, 0))
             if self.es_posicion_valida(f, self.columnas - 1, es_jugador=True):
                 candidatas.append((f, self.columnas - 1))
-        
-        # Seleccionar SOLO 1 salida
         if candidatas:
             salida = random.choice(candidatas)
             f, c = salida
@@ -134,12 +106,9 @@ class Mapa:
             self.salidas = [salida]
             print(f"Salida colocada en: ({f}, {c})")
         else:
-            # Si no hay candidatas, crear una forzada
             self._crear_salida_forzada()
 
     def _crear_salida_forzada(self):
-        """Crea una salida forzada si no hay candidatas"""
-        # Buscar cualquier posición de borde y hacerla salida
         for c in [0, self.columnas-1]:
             for f in range(self.filas):
                 self.grid[f][c] = Casilla(Salida())
@@ -153,7 +122,6 @@ class Mapa:
                 return
     
     def hay_camino(self, f, c, visitados=None):
-        """Verifica si hay camino desde (f,c) hasta alguna salida"""
         if visitados is None:
             visitados = set()
         
@@ -161,16 +129,13 @@ class Mapa:
             return False
         
         visitados.add((f, c))
-        
-        # Si encontramos salida
+
         if isinstance(self.grid[f][c].terreno, Salida):
             return True
-        
-        # Si no es transitable para jugador
+
         if not self.grid[f][c].terreno.permite_jugador():
             return False
-        
-        # Buscar en todas las direcciones
+
         movimientos = [(1, 0), (-1, 0), (0, 1), (0, -1)]
         for df, dc in movimientos:
             if self.hay_camino(f + df, c + dc, visitados):
@@ -179,15 +144,12 @@ class Mapa:
         return False
     
     def asegurar_camino_valido(self, inicio_f, inicio_c):
-        """Asegura que haya al menos un camino válido desde la posición inicial"""
         if not self.hay_camino(inicio_f, inicio_c):
-            # Si no hay camino, crear uno forzado a la salida más cercana
             if self.salidas:
                 f_salida, c_salida = self.salidas[0]
                 self._crear_camino(inicio_f, inicio_c, f_salida, c_salida)
     
     def es_posicion_valida(self, f, c, es_jugador=True):
-        """Verifica si una posición es válida para moverse"""
         if not (0 <= f < self.filas and 0 <= c < self.columnas):
             return False
         
