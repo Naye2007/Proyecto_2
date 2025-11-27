@@ -176,41 +176,29 @@ class Main:
     
     def crear_leyenda_juego(self):
         Label(self.leyenda_frame, text="MODO ESCAPA", font=("Arial", 12, "bold"), 
-            bg="lightgray", pady=15).pack()
+            bg="lightgray", pady=10).pack(fill=X)
         
-        # NUEVA LEYENDA CON SISTEMA DE PUNTOS
-        controles_texto = """CONTROLES:
-
-    FLECHAS - Moverse
-    ESPACIO - Correr
-    T - Colocar trampa
-    R - Reiniciar
-
-    Máximo 3 trampas
-
-    BONIFICACIÓN POR TIEMPO:
-    < 30s = +100 puntos
-    30-50s = +50 puntos
-    > 50s = +25 puntos"""
-
-        Label(self.leyenda_frame, text=controles_texto, font=("Arial", 9), 
-            bg="lightgray", justify=LEFT, anchor="w", 
-            padx=10, pady=10).pack(fill=X)
-        
-        Frame(self.leyenda_frame, bg="darkgray", height=2).pack(fill=X, padx=5, pady=5)
-
-        bloques = [
-            "Gris - Camino", "Negro - Muro", "Azul - Túnel",
-            "Verde - Lianas", "Amarillo - Salida", "Rojo - Salida",
-            "Punto Azul - Jugador", "Punto Rojo - Jugador corriendo",
-            "Punto Naranja - Cazadores", "Morado - Trampas"
+        secciones = [
+            ("CONTROLES", 
+            "Flechas: Moverse\nEspacio: Correr\nT: Trampa\nR: Reiniciar\n\nMáx 3 trampas\nCooldown 5s"),
+            
+            ("PUNTUACIÓN", 
+            "POR TIEMPO:\n<30s: 100 pts\n30-50s: 50 pts\n>50s: 25 pts\n\nPOR ELIMINACIONES:\nCada cazador: 100 pts"),
+            
+            ("COLORES",
+            "Gris - Camino\nNegro - Muro\nAzul - Túnel\nVerde - Lianas\nAmarillo - Salida\nAzul - Jugador\nRojo - Corriendo\nNaranja - Cazadores\nMorado - Trampas")
         ]
         
-        for bloque in bloques:
-            Label(self.leyenda_frame, text=bloque, font=("Arial", 9), 
-                bg="lightgray", justify=LEFT, anchor="w", 
-                padx=10, pady=3).pack(fill=X)
-            Frame(self.leyenda_frame, bg="darkgray", height=1).pack(fill=X, padx=5)
+        for titulo, contenido in secciones:
+
+            frame_seccion = Frame(self.leyenda_frame, bg="white", relief="raised", bd=1)
+            frame_seccion.pack(fill=X, padx=5, pady=3)
+
+            Label(frame_seccion, text=titulo, font=("Arial", 10, "bold"), 
+                bg="lightblue", fg="black").pack(fill=X, padx=2, pady=2)
+
+            Label(frame_seccion, text=contenido, font=("Arial", 9), 
+                bg="white", justify=LEFT, anchor="w").pack(fill=X, padx=8, pady=5)
 
 
     def mostrar_seleccion_dificultad(self, modo_juego):
@@ -238,10 +226,10 @@ class Main:
         dificultades_frame.pack(pady=30)
         
         dificultades = [
-            ("Fácil", "facil", "1 cazador\nMultiplicador 1.0x"),
-            ("Normal", "normal", "2 cazadores\nMultiplicador 1.5x"), 
-            ("Difícil", "dificil", "3 cazadores\nMultiplicador 2.0x"),
-            ("Extremo", "extremo", "4 cazadores\nMultiplicador 3.0x")
+            ("Fácil", "facil", "2 cazador"),
+            ("Normal", "normal", "3 cazadores"), 
+            ("Difícil", "dificil", "4 cazadores"),
+            ("Extremo", "extremo", "5 cazadores")
         ]
         
         for nombre, clave, desc in dificultades:
@@ -353,31 +341,29 @@ class Main:
         
     def calcular_puntaje_victoria(self):
         tiempo_transcurrido = time.time() - self.tiempo_inicio
-        config = self.dificultad.get_configuracion()
 
         if tiempo_transcurrido < 30:
             puntos_por_tiempo = 100
-            bonificacion_tiempo = " +100 pts"
+            bonificacion_tiempo = "Tiempo < 30s: +100 pts"
         elif tiempo_transcurrido < 50:
             puntos_por_tiempo = 50
-            bonificacion_tiempo = "+50 pts"
+            bonificacion_tiempo = "Tiempo 30-50s: +50 pts"
         else:
             puntos_por_tiempo = 25
-            bonificacion_tiempo = "+25 pts"
+            bonificacion_tiempo = "Tiempo > 50s: +25 pts"
         
-        puntos_base = 500
-        puntos_totales = puntos_base + puntos_por_tiempo + self.puntaje
-        puntos_final = puntos_totales * config['multiplicador_puntos']
+
+        puntos_por_eliminaciones = self.puntaje
+        
+        puntos_final = puntos_por_tiempo + puntos_por_eliminaciones
         
         return {
             'puntos_final': int(puntos_final),
             'tiempo_transcurrido': tiempo_transcurrido,
-            'puntos_base': puntos_base,
             'puntos_tiempo': puntos_por_tiempo,
-            'bonificacion_tiempo': bonificacion_tiempo,  # NUEVO: para mostrar en leyenda
-            'puntos_trampas': self.puntaje,
-            'multiplicador': config['multiplicador_puntos']
-        }
+            'bonificacion_tiempo': bonificacion_tiempo,
+            'puntos_eliminaciones': puntos_por_eliminaciones,
+            'eliminaciones': self.puntaje // 100}
     def generar_mapa(self):
         print("Generando nuevo mapa...")
         self.mapa = Mapa(self.FILAS, self.COLUMNAS, self.TIPOS)
@@ -480,17 +466,13 @@ class Main:
         puntaje_detalle = self.calcular_puntaje_victoria()
         self.puntaje = puntaje_detalle['puntos_final']
         
-        config = self.dificultad.get_configuracion()
-        mensaje = f"""¡VICTORIA! 🎉
+        mensaje = f"""¡VICTORIA!
 
     Tiempo: {puntaje_detalle['tiempo_transcurrido']:.1f}s
-    Dificultad: {config['nombre']} (x{puntaje_detalle['multiplicador']})
 
     DESGLOSE DE PUNTOS:
-    Victoria: {puntaje_detalle['puntos_base']}
     {puntaje_detalle['bonificacion_tiempo']}
-    Eliminaciones: {puntaje_detalle['puntos_trampas']}
-    Multiplicador: x{puntaje_detalle['multiplicador']}
+    Eliminaciones: {puntaje_detalle['eliminaciones']} cazadores = +{puntaje_detalle['puntos_eliminaciones']} pts
 
     PUNTOS TOTALES: {puntaje_detalle['puntos_final']}
 
@@ -597,13 +579,13 @@ class Main:
                     enemigos_a_eliminar.append(enemigo)
                     trampa.desactivar()
                     trampas_a_eliminar.append(trampa)
-                    config = self.dificultad.get_configuracion()
-                    bono_puntos = 50 * config['multiplicador_puntos']
+                    bono_puntos = 100
                     self.puntaje += bono_puntos
-                    print(f" +{int(bono_puntos)} puntos por eliminar cazador")
+                    print(f" +{bono_puntos} puntos por eliminar cazador")
                     self.actualizar_estadisticas()
                     
                     break  
+        
         for trampa in trampas_a_eliminar:
             self.jugador.eliminar_trampa(trampa)
 
