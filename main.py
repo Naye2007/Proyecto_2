@@ -365,7 +365,6 @@ class Main:
             'puntos_eliminaciones': puntos_por_eliminaciones,
             'eliminaciones': self.puntaje // 100}
     def generar_mapa(self):
-        print("Generando nuevo mapa...")
         self.mapa = Mapa(self.FILAS, self.COLUMNAS, self.TIPOS)
         self.crear_jugador_aleatorio()
         self.crear_enemigos_aleatorios()
@@ -422,7 +421,6 @@ class Main:
                 
                 enemigo = Cazador(fila, columna, config['velocidad_enemigos'])
                 self.enemigos.append(enemigo)
-                print(f"Cazador {i+1} creado en posición: ({fila}, {columna})")
     
     def actualizar_enemigos(self):
         if hasattr(self, 'enemigos') and self.juego_activo and hasattr(self, 'jugador'):
@@ -449,7 +447,6 @@ class Main:
                 tiempo_transcurrido = time.time() - self.tiempo_inicio
                 mensaje = f"¡PERDISTE! \nUn cazador te atrapó en {tiempo_transcurrido:.1f}s\nPuntos: {int(self.puntaje)}"
                 self.label_info.config(text=mensaje, fg="red")
-                print("¡PERDISTE! Jugador atrapado por un cazador")
                 break
     
     def verificar_victoria(self):
@@ -482,7 +479,7 @@ class Main:
         
         self.dibujar_mapa()
         self.actualizar_estadisticas()
-        print(f"¡VICTORIA! Puntos: {puntaje_detalle['puntos_final']}")
+
     
     def reiniciar_juego(self):
         if self.dificultad:
@@ -573,7 +570,6 @@ class Main:
                 if (enemigo.vivo and 
                     enemigo.fila == trampa.fila and 
                     enemigo.columna == trampa.columna):
-                    print(f" ¡Trampa activada! Cazador eliminado en ({enemigo.fila}, {enemigo.columna})")
                     enemigo.vivo = False
                     enemigo.tiempo_muerte = time.time()
                     enemigos_a_eliminar.append(enemigo)
@@ -581,7 +577,6 @@ class Main:
                     trampas_a_eliminar.append(trampa)
                     bono_puntos = 100
                     self.puntaje += bono_puntos
-                    print(f" +{bono_puntos} puntos por eliminar cazador")
                     self.actualizar_estadisticas()
                     
                     break  
@@ -641,7 +636,7 @@ class Main:
                 else:
                     print("Modo CAMINAR activado")
             else:
-                print("No hay suficiente energía para correr (mínimo 15%)")
+                print("No hay suficiente energía")
             self.dibujar_mapa()
             return
         elif event.keysym.lower() == 't': 
@@ -678,11 +673,11 @@ class Main:
         elif event.keysym == 'space':
             if self.jugador.toggle_correr():
                 if self.jugador.corriendo:
-                    print("Modo CORRER activado - Moverás 2 casillas por vez")
+                    print("Modo CORRER activado")
                 else:
                     print("Modo CAMINAR activado")
             else:
-                print("No hay suficiente energía para correr (mínimo 15%)")
+                print("No hay suficiente energía")
             self.dibujar_mapa()
             return
         elif event.keysym.lower() == 't': 
@@ -707,7 +702,5 @@ class Main:
         self.ventana.mainloop()
 
 if __name__ == "__main__":
-    print("Laberinto - Modo Escapa")
-    print("=" * 50)
     app = Main()
     app.ejecutar()
