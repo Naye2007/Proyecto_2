@@ -1,6 +1,10 @@
 from tkinter import *
+from tkinter import messagebox
 import random
 import time
+import winsound
+import json
+import os 
 from mapa import Mapa
 from camino import Camino
 from muro import Muro
@@ -26,6 +30,7 @@ class Main:
         self.bucle_energia_id = None
         self.bucle_enemigos_id = None
         self.bucle_tiempo_id = None
+        self.nombre_jugador = ""
         self.ventana = Tk()
         self.ventana.title("Laberinto - Modo Escapa")
         self.ventana.geometry("1200x800")
@@ -33,7 +38,7 @@ class Main:
         
         self.crear_interfaz()
         
-        self.mostrar_pantalla_inicio()
+        self.mostrar_registro_jugador()
     
     def crear_interfaz(self):
         main_frame = Frame(self.ventana)
@@ -74,6 +79,9 @@ class Main:
         
         self.tiempo_frame = Frame(self.stats_frame)
         self.tiempo_frame.pack(fill=X, pady=5)
+
+        self.label_jugador = Label(self.tiempo_frame, text="Jugador: -", font=("Arial", 10, "bold"))
+        self.label_jugador.pack(side=LEFT, padx=20)
         
         self.label_tiempo = Label(self.tiempo_frame, text="Tiempo: 0.0s", font=("Arial", 10, "bold"))
         self.label_tiempo.pack(side=LEFT, padx=20)
@@ -87,6 +95,7 @@ class Main:
         self.label_enemigos = Label(self.tiempo_frame, text="Cazadores: 0", font=("Arial", 10, "bold"), fg="orange")
         self.label_enemigos.pack(side=LEFT, padx=20)
 
+
         self.contenido_frame = Frame(main_frame)
         self.contenido_frame.pack(fill=BOTH, expand=True)
 
@@ -96,6 +105,26 @@ class Main:
 
         self.ventana.bind('<KeyPress>', self.manejar_teclado)
         self.ventana.focus_set()
+
+    def reproducir_sonido(self, tipo):
+        """
+        Reproduce sonidos simples usando winsound.
+        tipo puede ser: 'victoria', 'derrota', 'trampa', 'captura'
+        """
+        try:
+            if tipo == "victoria":
+                winsound.Beep(880, 200)  
+                winsound.Beep(1175, 250) 
+            elif tipo == "derrota":
+                winsound.Beep(300, 400)
+                winsound.Beep(220, 400)
+            elif tipo == "trampa":
+                winsound.Beep(700, 120)
+            elif tipo == "captura":
+                winsound.Beep(1000, 120)
+        except Exception:
+            pass
+
     
     def detener_bucles(self):
         self.juego_activo = False
@@ -158,10 +187,148 @@ class Main:
         Label(modo_cazador_frame, text=desc_cazador, font=("Arial", 11), 
             bg="lightgreen", justify=LEFT).pack(pady=10)
         
-        Button(modo_cazador_frame, text="PRÓXIMAMENTE", 
-            font=("Arial", 12, "bold"), bg="gray", fg="white",
-            state="disabled", 
-            width=20, height=2).pack(pady=10)
+        Button(modo_cazador_frame, text="JUGAR MODO CAZADOR", 
+    font=("Arial", 12, "bold"), bg="darkgreen", fg="white",
+    command=lambda: self.mostrar_seleccion_dificultad("cazador"),
+    width=20, height=2).pack(pady=10)
+
+
+
+    def cargar_puntajes(self):
+        """Carga el archivo de puntajes si existe, si no, crea la estructura base."""
+        ruta = os.path.join(os.path.dirname(__file__), "puntajes.json")
+        if not os.path.exists(ruta):
+            return {
+                "escape": [],
+                "cazador": []
+            }
+        try:
+            with open(ruta, "r", encoding="utf-8") as f:
+                datos = json.load(f)
+        except Exception:
+            datos = {
+                "escape": [],
+                "cazador": []
+            }
+            
+        if "escape" not in datos:
+            datos["escape"] = []
+        if "cazador" not in datos:
+            datos["cazador"] = []
+        return datos
+
+
+    def guardar_puntajes(self, datos):
+        """Guarda el diccionario de puntajes en el archivo JSON."""
+        ruta = os.path.join(os.path.dirname(__file__), "puntajes.json")
+        try:
+            with open(ruta, "w", encoding="utf-8") as f:
+                json.dump(datos, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            print("Error guardando puntajes:", e)
+
+    def registrar_puntaje(self, modo, puntaje):
+        """
+        Registra el puntaje del jugador en el modo indicado.
+        modo: 'escape' o 'cazador'
+        """
+        if modo not in ["escape", "cazador"]:
+            return
+        
+        nombre = self.nombre_jugador if getattr(self, "nombre_jugador", "") else "Sin nombre"
+        
+        datos = self.cargar_puntajes()
+        lista = datos.get(modo, [])
+
+        entrada = {
+            "nombre": nombre,
+            "puntaje": int(puntaje)
+        }
+
+        lista.append(entrada)
+        lista = sorted(lista, key=lambda x: x["puntaje"], reverse=True)
+        datos[modo] = lista[:5]
+        
+        self.guardar_puntajes(datos)
+
+
+    def mostrar_puntajes(self):
+        """Muestra una ventana con el Top 5 de cada modo."""
+        datos = self.cargar_puntajes()
+        
+        ventana = Toplevel(self.ventana)
+        ventana.title("Puntajes - Top 5")
+        ventana.geometry("400x300")
+        
+        titulo = Label(ventana, text="TOP 5 PUNTAJES", 
+                       font=("Arial", 16, "bold"))
+        titulo.pack(pady=10)
+        
+        frame_listas = Frame(ventana)
+        frame_listas.pack(pady=5, fill=BOTH, expand=True)
+        
+     
+        frame_escape = Frame(frame_listas, bd=2, relief="groove")
+        frame_escape.pack(side=LEFT, padx=10, fill=BOTH, expand=True)
+        
+        Label(frame_escape, text="Modo Escapa", 
+              font=("Arial", 12, "bold")).pack(pady=5)
+        
+        if datos["escape"]:
+            for i, entrada in enumerate(datos["escape"], start=1):
+                texto = f"{i}. {entrada['nombre']} - {entrada['puntaje']} pts"
+                Label(frame_escape, text=texto, font=("Arial", 10)).pack(anchor="w", padx=5)
+        else:
+            Label(frame_escape, text="Sin registros", font=("Arial", 10, "italic")).pack(pady=5)
+        
+  
+        frame_cazador = Frame(frame_listas, bd=2, relief="groove")
+        frame_cazador.pack(side=LEFT, padx=10, fill=BOTH, expand=True)
+        
+        Label(frame_cazador, text="Modo Cazador", 
+              font=("Arial", 12, "bold")).pack(pady=5)
+        
+        if datos["cazador"]:
+            for i, entrada in enumerate(datos["cazador"], start=1):
+                texto = f"{i}. {entrada['nombre']} - {entrada['puntaje']} pts"
+                Label(frame_cazador, text=texto, font=("Arial", 10)).pack(anchor="w", padx=5)
+        else:
+            Label(frame_cazador, text="Sin registros", font=("Arial", 10, "italic")).pack(pady=5)
+
+
+    def mostrar_registro_jugador(self):
+        """Ventana inicial para registrar el nombre del jugador."""
+        self.detener_bucles()
+        self.control_frame.pack_forget()
+        self.info_frame.pack_forget()
+        self.stats_frame.pack_forget()
+        self.limpiar_interfaz_juego()
+
+        self.ventana.title("Laberinto - Registro de jugador")
+
+        frame = Frame(self.contenido_frame)
+        frame.pack(expand=True)
+
+        Label(frame, text="ESCAPA DEL LABERINTO", 
+              font=("Arial", 24, "bold"), fg="darkblue").pack(pady=20)
+
+        Label(frame, text="Ingrese su nombre para comenzar:", 
+              font=("Arial", 12)).pack(pady=10)
+
+        entrada_nombre = Entry(frame, font=("Arial", 12), width=25)
+        entrada_nombre.pack(pady=5)
+
+        def confirmar_nombre():
+            nombre = entrada_nombre.get().strip()
+            if nombre == "":
+                messagebox.showwarning("Aviso", "Debe ingresar un nombre para jugar.")
+                return
+            self.nombre_jugador = nombre
+            self.ventana.title(f"Laberinto - Jugador: {self.nombre_jugador}")
+            self.mostrar_pantalla_inicio()
+
+        Button(frame, text="Aceptar", font=("Arial", 11, "bold"),
+               command=confirmar_nombre, width=12, bg="lightblue").pack(pady=15)
     
 
     def limpiar_interfaz_juego(self):
@@ -175,30 +342,48 @@ class Main:
         self.mapa_frame.pack(side=RIGHT, fill=BOTH, expand=True)
     
     def crear_leyenda_juego(self):
-        Label(self.leyenda_frame, text="MODO ESCAPA", font=("Arial", 12, "bold"), 
-            bg="lightgray", pady=10).pack(fill=X)
+        modo = getattr(self, "modo_juego_actual", "escape")
+
+        if modo == "cazador":
+            titulo_modo = "MODO CAZADOR"
+            secciones = [
+                ("CONTROLES", 
+                 "Flechas: Moverse\nEspacio: Correr\nR: Reiniciar\n\n(Trampas pensadas para modo Escapa)"),
+                
+                ("PUNTUACIÓN", 
+                 "Capturas: +100 pts x multiplicador\nEscape enemigo: -50 pts x multiplicador"),
+                
+                ("COLORES",
+                 "Gris - Camino\nNegro - Muro\nAzul - Túnel (solo jugador)\n"
+                 "Verde - Liana (solo cazadores)\nNaranja - Cazadores\nAzul/Rojo - Jugador")
+            ]
+        else:
+            titulo_modo = "MODO ESCAPA"
+            secciones = [
+                ("CONTROLES", 
+                 "Flechas: Moverse\nEspacio: Correr\nT: Trampa\nR: Reiniciar\n\nMáx 3 trampas\nCooldown 5s"),
+                
+                ("PUNTUACIÓN", 
+                 "POR TIEMPO:\n<30s: 100 pts\n30-50s: 50 pts\n>50s: 25 pts\n\n"
+                 "POR ELIMINACIONES:\nCada cazador: 100 pts"),
+                
+                ("COLORES",
+                 "Gris - Camino\nNegro - Muro\nAzul - Túnel\nVerde - Liana\n"
+                 "Rojo - Corriendo\nNaranja - Cazadores\nMorado - Trampas")
+            ]
         
-        secciones = [
-            ("CONTROLES", 
-            "Flechas: Moverse\nEspacio: Correr\nT: Trampa\nR: Reiniciar\n\nMáx 3 trampas\nCooldown 5s"),
-            
-            ("PUNTUACIÓN", 
-            "POR TIEMPO:\n<30s: 100 pts\n30-50s: 50 pts\n>50s: 25 pts\n\nPOR ELIMINACIONES:\nCada cazador: 100 pts"),
-            
-            ("COLORES",
-            "Gris - Camino\nNegro - Muro\nAzul - Túnel\nVerde - Lianas\nAmarillo - Salida\nAzul - Jugador\nRojo - Corriendo\nNaranja - Cazadores\nMorado - Trampas")
-        ]
+        Label(self.leyenda_frame, text=titulo_modo, font=("Arial", 12, "bold"), 
+              bg="lightgray", pady=10).pack(fill=X)
         
         for titulo, contenido in secciones:
-
             frame_seccion = Frame(self.leyenda_frame, bg="white", relief="raised", bd=1)
             frame_seccion.pack(fill=X, padx=5, pady=3)
 
             Label(frame_seccion, text=titulo, font=("Arial", 10, "bold"), 
-                bg="lightblue", fg="black").pack(fill=X, padx=2, pady=2)
+                  bg="lightblue", fg="black").pack(fill=X, padx=2, pady=2)
 
             Label(frame_seccion, text=contenido, font=("Arial", 9), 
-                bg="white", justify=LEFT, anchor="w").pack(fill=X, padx=8, pady=5)
+                  bg="white", justify=LEFT, anchor="w").pack(fill=X, padx=8, pady=5)
 
 
     def mostrar_seleccion_dificultad(self, modo_juego):
@@ -282,6 +467,11 @@ class Main:
         self.tiempo_inicio = time.time()
         self.puntaje = 0
         self.actualizar_estadisticas()
+        if hasattr(self, 'label_jugador'):
+            self.label_jugador.config(
+                text=f"Jugador: {self.nombre_jugador if self.nombre_jugador else '-'}"
+            )
+
         if hasattr(self, 'modo_juego_actual') and self.modo_juego_actual == "escape":
             self.label_info.config(text=f"¡Modo Escapa! {config['nombre']} - {config['cantidad_enemigos']} cazadores")
         else:
@@ -420,34 +610,84 @@ class Main:
                 posiciones_validas.remove((fila, columna))  
                 
                 enemigo = Cazador(fila, columna, config['velocidad_enemigos'])
+                
+                if hasattr(self, "modo_juego_actual") and self.modo_juego_actual == "cazador":
+                    enemigo.huir = True
+                else:
+                    enemigo.huir = False
+                
                 self.enemigos.append(enemigo)
     
     def actualizar_enemigos(self):
         if hasattr(self, 'enemigos') and self.juego_activo and hasattr(self, 'jugador'):
             self.verificar_trampas_enemigos()
             self.reaparecer_enemigos()
+            
+            modo = getattr(self, "modo_juego_actual", "escape")
+            
             for enemigo in self.enemigos:
                 if enemigo.vivo:
                     enemigo.mover(self.jugador.fila, self.jugador.columna, self.mapa)
+
+                    if modo == "cazador" and hasattr(self.mapa, "salidas"):
+                        if (enemigo.fila, enemigo.columna) in self.mapa.salidas:
+                            config = self.dificultad.get_configuracion()
+                            puntos_base = 50
+                            puntos_perdidos = int(puntos_base * config['multiplicador_puntos'])
+                            self.puntaje -= puntos_perdidos
+                            self.label_info.config(
+                                text=f"Un cazador escapó por la salida. -{puntos_perdidos} pts",
+                                fg="red"
+                            )
+                            self.actualizar_estadisticas()
+                            enemigo.vivo = False
+                            enemigo.tiempo_muerte = time.time()
+            
             self.verificar_colision_enemigos()
             self.dibujar_mapa()
+        
         if self.juego_activo:
             self.bucle_enemigos_id = self.ventana.after(700, self.actualizar_enemigos)
+
     
+
     def verificar_colision_enemigos(self):
         if not hasattr(self, 'jugador') or not self.juego_activo:
             return
+        
+        modo = getattr(self, "modo_juego_actual", "escape")
         
         for enemigo in self.enemigos:
             if (enemigo.vivo and 
                 enemigo.fila == self.jugador.fila and 
                 enemigo.columna == self.jugador.columna):
                 self.detener_bucles()
-                self.juego_activo = False
-                tiempo_transcurrido = time.time() - self.tiempo_inicio
-                mensaje = f"¡PERDISTE! \nUn cazador te atrapó en {tiempo_transcurrido:.1f}s\nPuntos: {int(self.puntaje)}"
-                self.label_info.config(text=mensaje, fg="red")
+                self.reproducir_sonido("derrota")
+
+                if modo == "escape":
+                    self.detener_bucles()
+                    self.juego_activo = False
+                    tiempo_transcurrido = time.time() - self.tiempo_inicio
+                    mensaje = (f"¡PERDISTE! \nUn cazador te atrapó en "
+                               f"{tiempo_transcurrido:.1f}s\nPuntos: {int(self.puntaje)}")
+                    self.label_info.config(text=mensaje, fg="red")
+                else:
+                    enemigo.vivo = False
+                    enemigo.tiempo_muerte = time.time()
+                    
+                    config = self.dificultad.get_configuracion()
+                    puntos_base = 100
+                    puntos_ganados = int(puntos_base * config['multiplicador_puntos'])
+                    self.puntaje += puntos_ganados
+                    
+                    self.label_info.config(
+                        text=f"¡Cazador atrapado! +{puntos_ganados} pts",
+                        fg="green"
+                    )
+                    self.actualizar_estadisticas()
+                
                 break
+
     
     def verificar_victoria(self):
         if not hasattr(self, 'jugador') or not self.juego_activo:
@@ -460,8 +700,11 @@ class Main:
     
     def mostrar_victoria(self):
         self.detener_bucles()
+        self.reproducir_sonido("victoria")
         puntaje_detalle = self.calcular_puntaje_victoria()
         self.puntaje = puntaje_detalle['puntos_final']
+
+        self.registrar_puntaje("escape", self.puntaje)
         
         mensaje = f"""¡VICTORIA!
 
@@ -483,8 +726,11 @@ class Main:
     
     def reiniciar_juego(self):
         if self.dificultad:
+            modo = getattr(self, "modo_juego_actual", "escape")
+            if modo == "cazador" and hasattr(self, "registrar_puntaje"):
+                self.registrar_puntaje("cazador", self.puntaje)
+
             self.detener_bucles()
-            config = self.dificultad.get_configuracion()
             self.iniciar_juego(self.dificultad.nivel)
         else:
             self.mostrar_pantalla_inicio()
@@ -578,6 +824,8 @@ class Main:
                     bono_puntos = 100
                     self.puntaje += bono_puntos
                     self.actualizar_estadisticas()
+
+                    self.reproducir_sonido("captura")
                     
                     break  
         
@@ -641,6 +889,7 @@ class Main:
             return
         elif event.keysym.lower() == 't': 
             if self.jugador.colocar_trampa(time.time()):
+                self.reproducir_sonido("trampa")
                 self.dibujar_mapa()
                 self.actualizar_estadisticas()
             return
